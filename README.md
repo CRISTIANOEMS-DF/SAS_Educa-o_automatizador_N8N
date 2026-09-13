@@ -27,3 +27,9 @@ A esteira modular foi estruturada para operar em ciclos sequenciais e paralelos,
 
 1. Importe o arquivo `SAS_educacao_otimizacao_n8n.json` em sua instância local do n8n.
 2. Certifique-se de configurar adequadamente os parâmetros de autenticação e os identificadores de sessão necessários para que o payload simule corretamente as requisições de teste (utilizando credenciais válidas adaptadas ao seu ambiente de homologação).
+
+## 🖼️ Visão Geral do Workflow
+
+Abaixo está a representação visual da estrutura completa da esteira de automação configurada no n8n:
+
+![Visão Geral do Workflow n8n](./IMAGES/N8N_PICTURE.png)
