@@ -1,0 +1,47 @@
+{
+  "name": "02 - Mapeamento e Coleta de Atividades",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "node-trigger-2",
+      "name": "Start Module"
+    },
+    {
+      "parameters": {
+        "url": "https://avl-activity-bff.arcotech.io/v1/schedules/available?page=1&pageSize=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer SEU_TOKEN_AQUI" },
+            { "name": "accountid", "value": "000000" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [224, 0],
+      "id": "node-get-schedules",
+      "name": "Get Available Schedules"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "after",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [448, 0],
+      "id": "node-split",
+      "name": "Split Schedules"
+    }
+  ],
+  "connections": {
+    "Start Module": { "main": [[{ "node": "Get Available Schedules", "type": "main", "index": 0 }]] },
+    "Get Available Schedules": { "main": [[{ "node": "Split Schedules", "type": "main", "index": 0 }]] }
+  }
+}

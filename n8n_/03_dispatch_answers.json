@@ -1,0 +1,63 @@
+{
+  "name": "03 - Disparo de Respostas e Encerramento",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "node-trigger-3",
+      "name": "Start Dispatch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://avl-activity-bff.arcotech.io/v1/answers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "authorization", "value": "=Bearer SEU_TOKEN_AQUI" },
+            { "name": "accountid", "value": "000000" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"classroomId\": \"000000\",\n  \"referenceId\": \"000000\",\n  \"contentId\": \"000000\",\n  \"answerType\": \"OPTION\",\n  \"optionId\": [\"000000\"],\n  \"optionSelected\": [\"A\"],\n  \"contentOrder\": 1,\n  \"lastOption\": [],\n  \"scheduleClassroomId\": \"000000\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [224, 0],
+      "id": "node-send-answer",
+      "name": "Post Answer"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://avl-activity-bff.arcotech.io/v1/test-notebook/000000/schedule-classroom/000000/finish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "authorization", "value": "=Bearer SEU_TOKEN_AQUI" },
+            { "name": "accountid", "value": "000000" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"classroomId\": 000000,\n  \"scheduleId\": 000000\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [448, 0],
+      "id": "node-finish",
+      "name": "Finish Notebook"
+    }
+  ],
+  "connections": {
+    "Start Dispatch": { "main": [[{ "node": "Post Answer", "type": "main", "index": 0 }]] },
+    "Post Answer": { "main": [[{ "node": "Finish Notebook", "type": "main", "index": 0 }]] }
+  }
+}

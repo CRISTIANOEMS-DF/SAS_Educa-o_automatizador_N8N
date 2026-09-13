@@ -1,0 +1,50 @@
+{
+  "name": "01 - Autenticacao e Login",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "node-trigger",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-bff.portalsaseducacao.com.br/login/2fa",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Origin", "value": "https://app.portalsaseducacao.com.br" },
+            { "name": "Referer", "value": "https://app.portalsaseducacao.com.br/" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"username\": \"SEU_EMAIL_AQUI\",\n  \"password\": \"SUA_SENHA_AQUI\",\n  \"realm\": \"sas\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [224, 0],
+      "id": "node-login",
+      "name": "Login HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst inputData = $input.first().json;\nconst token = inputData.accessToken || inputData.token || inputData.access_token;\nconst accountId = inputData.accounts?.[0]?.id || staticData.accountId;\n\nif (token) {\n    const base64Url = token.split('.')[1];\n    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');\n    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));\n    const payload = JSON.parse(jsonPayload);\n\n    staticData.token = token;\n    staticData.accountId = accountId;\n}\n\nreturn [{ json: { token: staticData.token, accountId: staticData.accountId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0],
+      "id": "node-parser",
+      "name": "Parse Token"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Login HTTP Request", "type": "main", "index": 0 }]] },
+    "Login HTTP Request": { "main": [[{ "node": "Parse Token", "type": "main", "index": 0 }]] }
+  }
+}
