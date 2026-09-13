@@ -1,0 +1,368 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "086f8085-500b-421c-bd5a-d9cb9dc2ce03",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-bff.portalsaseducacao.com.br/login/2fa",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Origin",
+              "value": "https://app.portalsaseducacao.com.br"
+            },
+            {
+              "name": "Referer",
+              "value": "https://app.portalsaseducacao.com.br/"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"username\": \"SEU_EMAIL_AQUI\",\n  \"password\": \"SUA_SENHA_AQUI\",\n  \"realm\": \"sas\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "6c61dd15-e98b-4f9e-8550-03aae5b44615",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst currentTime = Math.floor(Date.now() / 1000);\n\nconst inputData = $input.first().json;\nconst token = inputData.accessToken || inputData.token || inputData.access_token;\n\n// Pega o accountId correto dentro do array accounts[0].id\nconst accountId = inputData.accounts?.[0]?.id || staticData.accountId;\n\nif (token) {\n    const base64Url = token.split('.')[1];\n    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');\n    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));\n    const payload = JSON.parse(jsonPayload);\n\n    staticData.token = token;\n    staticData.expiresAt = payload.exp;\n    staticData.accountId = accountId;\n}\n\nreturn [{ \n    json: { \n        token: staticData.token, \n        accountId: staticData.accountId,\n        expiresAt: staticData.expiresAt,\n        expiresInMinutes: Math.floor((staticData.expiresAt - currentTime) / 60)\n    } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "c492bab5-2996-4406-92af-b06ccf838e02",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "https://avl-activity-bff.arcotech.io/v1/schedules/available?page=1&pageSize=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
+            },
+            {
+              "name": "accountid",
+              "value": "={{ $('Code in JavaScript').item.json.accountId }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "73d488d2-dbcb-4c80-944c-f3f076665ddd",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "after",
+        "include": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "id": "697036f5-f7c0-4456-ba9b-a7be3561c02b",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "=https://avl-activity-bff.arcotech.io/v1/schedules/delivery-info/{{ $json.after.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Code in JavaScript').item.json.token }}"
+            },
+            {
+              "name": "accountid",
+              "value": "={{ $('Code in JavaScript').item.json.accountId }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "842324bc-f152-46c9-83cf-bf0f9f42c57b",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const BASE_URL = \"https://avl-activity-bff.arcotech.io\";\n\n// Token e accountId vêm do nó de autenticação\nconst auth = $('Code in JavaScript').first().json;\nconst staticData = $getWorkflowStaticData('global');\nconst token = auth.token || staticData.token;\nconst accountId = auth.accountId || staticData.accountId;\n\n// Itens da lista de atividades (cada um tem .after com o id do agendamento)\nconst scheduleItems = $('Split Out').all();\n\nconst letters = [\"A\", \"B\", \"C\", \"D\", \"E\", \"F\", \"G\"];\nconst results = [];\n\nconst headers = {\n  \"Authorization\": `Bearer ${token}`,\n  \"accountid\": String(accountId || \"000000\"),\n  \"Accept\": \"application/json, text/plain, */*\",\n  \"Origin\": \"https://app.portalsaseducacao.com.br\",\n  \"Referer\": \"https://app.portalsaseducacao.com.br/\",\n  \"User-Agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36\"\n};\n\nfor (let i = 0; i < scheduleItems.length; i++) {\n  const after = scheduleItems[i]?.json?.after || {};\n  const agendamentoId = after.id;          // ex.: 1490068 (id da lista)\n  const title = after.title || \"\";\n\n  if (!token || !agendamentoId) {\n    results.push({\n      json: {\n        status: \"skipped\",\n        reason: \"Faltando token ou id do agendamento\",\n        received: { hasToken: !!token, agendamentoId, title }\n      }\n    });\n    continue;\n  }\n\n  try {\n    // PASSO 1: traduzir o id do agendamento nos IDs reais\n    let mapeamento = await this.helpers.httpRequest({\n      method: \"GET\",\n      url: `${BASE_URL}/v1/schedules/${agendamentoId}`,\n      headers,\n      json: true,\n      timeout: 15000\n    });\n    if (typeof mapeamento === \"string\") {\n      try { mapeamento = JSON.parse(mapeamento); } catch {}\n    }\n\n    const activityId = mapeamento.testNotebookId;   // ← o activityId REAL\n    const scheduleId = mapeamento.scheduleId;        // ← o scheduleId REAL\n    const slug = mapeamento.activitySlug || title\n      .toLowerCase()\n      .normalize(\"NFD\")\n      .replace(/[\\u0300-\\u036f]/g, \"\")\n      .replace(/[^a-z0-9]+/g, \"-\")\n      .replace(/^-+|-+$/g, \"\");\n    const statusAgendamento = mapeamento.status;\n\n    if (!activityId || !scheduleId) {\n      results.push({\n        json: {\n          status: \"skipped\",\n          reason: \"Mapeamento sem testNotebookId/scheduleId\",\n          agendamentoId, title, mapeamento\n        }\n      });\n      continue;\n    }\n\n    // PASSO 2: buscar o gabarito com os IDs corretos\n    let data;\n    const urlWithSlug = `${BASE_URL}/v1/test-notebook/${activityId}/results?scheduleId=${scheduleId}&slug=${slug}`;\n    try {\n      data = await this.helpers.httpRequest({\n        method: \"GET\", url: urlWithSlug, headers, json: true, timeout: 15000\n      });\n    } catch (errSlug) {\n      const urlFallback = `${BASE_URL}/v1/test-notebook/${activityId}/results?scheduleId=${scheduleId}`;\n      data = await this.helpers.httpRequest({\n        method: \"GET\", url: urlFallback, headers, json: true, timeout: 15000\n      });\n    }\n    if (typeof data === \"string\") {\n      try { data = JSON.parse(data); } catch {}\n    }\n\n    const questoesGabarito = (data?.questions || []).map((q, idx) => {\n      const options = q.options || [];\n      const correctIndex = options.findIndex(opt => opt.isCorrect === true);\n      const correctOpt = correctIndex !== -1 ? options[correctIndex] : null;\n      return {\n        numero: idx + 1,\n        questionId: q.id,\n        order: q.questionOrder || (idx + 1),\n        alternativaCorreta: correctIndex !== -1 ? (letters[correctIndex] || `Opção ${correctIndex + 1}`) : \"N/A\",\n        optionIdCorreto: correctOpt ? correctOpt.id : null\n      };\n    });\n\n    results.push({\n      json: {\n        status: \"success\",\n        agendamentoId,\n        activityId,\n        scheduleId,\n        slug,\n        title,\n        statusAgendamento,\n        statusCaderno: data?.status || \"UNKNOWN\",\n        totalQuestoes: questoesGabarito.length,\n        gabarito: questoesGabarito\n      }\n    });\n\n  } catch (err) {\n    results.push({\n      json: {\n        status: \"exception\",\n        error: err.message,\n        agendamentoId,\n        title\n      }\n    });\n  }\n}\n\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "cbef898c-837f-4925-8dc0-f708f18dc0dc",
+      "name": "Code in JavaScript1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nconst incomingItems = typeof $input !== 'undefined' ? $input.all() : items;\n\nfor (const item of incomingItems) {\n  const data = item.json;\n  \n  let questoes = data.gabarito;\n  if (typeof questoes === 'string') {\n    try { questoes = JSON.parse(questoes); } catch (e) { questoes = []; }\n  }\n\n  if (Array.isArray(questoes)) {\n    for (const q of questoes) {\n      results.push({\n        json: {\n          token: data.token,\n          accountId: data.accountId || '000000',\n          classroomId: data.classroomId || 000000,\n          agendamentoId: data.agendamentoId,\n          referenceId: data.activityId || data.referenceId,\n          scheduleId: data.scheduleId,\n          slug: data.slug,\n          questionId: String(q.questionId),\n          optionIdCorreto: String(q.optionIdCorreto),\n          alternativaCorreta: String(q.alternativaCorreta || 'A').toUpperCase(),\n          order: Number(q.order || q.numero || 1)\n        }\n      });\n    }\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        176
+      ],
+      "id": "629e9d77-d385-4cf6-84db-34bb97467521",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://avl-activity-bff.arcotech.io/v1/answers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authorization",
+              "value": "=Bearer {{ $('Code in JavaScript').item.json.token }}"
+            },
+            {
+              "name": "accountid",
+              "value": "={{ $json.accountId }}"
+            },
+            {
+              "name": "origin",
+              "value": "app.portalsaseducacao.com.br"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "referer",
+              "value": "https://app.portalsaseducacao.com.br/"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"classroomId\": \"{{ $json.classroomId }}\",\n  \"referenceId\": \"{{ $json.referenceId }}\",\n  \"contentId\": \"{{ $json.questionId }}\",\n  \"answerType\": \"OPTION\",\n  \"optionId\": [\"{{ $json.optionIdCorreto }}\"],\n  \"optionSelected\": [\"{{ $json.alternativaCorreta }}\"],\n  \"contentOrder\": \"{{ $json.order }}\",\n  \"lastOption\": [],\n  \"scheduleClassroomId\": \"{{ $json.agendamentoId }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        240
+      ],
+      "id": "cf3b9ea9-538a-4366-8829-050df3332a5c",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ \"https://avl-activity-bff.arcotech.io/v1/test-notebook/\" + $('Code in JavaScript1').first().json.activityId + \"/schedule-classroom/\" + $('Code in JavaScript1').first().json.agendamentoId + \"/finish\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authorization",
+              "value": "=Bearer {{ $('Code in JavaScript').item.json.token }}"
+            },
+            {
+              "name": "accountid",
+              "value": "={{ $('Code in JavaScript').item.json.accountId }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "origin",
+              "value": "https://app.portalsaseducacao.com.br"
+            },
+            {
+              "name": "referer",
+              "value": "https://app.portalsaseducacao.com.br/"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"classroomId\": {{$('Code in JavaScript1').first().json.classroomId || 000000}},\n  \"scheduleId\": {{$('Code in JavaScript1').first().json.scheduleId}}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        240
+      ],
+      "id": "b464095e-4820-43fe-aea2-ac64b3f71dbb",
+      "name": "HTTP Request4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e95a20c1-6937-4ad9-94cd-4718a4314739",
+  "meta": {
+    "instanceId": "75d2c4f0d9a24013a6caa2e827eb00db750c35a42ebba3bd7b3a1f74a4f4f0b9"
+  },
+  "nodeGroups": [],
+  "id": "xyDKHLSoNfNX10Vi",
+  "tags": []
+}
