@@ -1,33 +1,29 @@
-# SAS Educação - Workflow de Automação Experimental (n8n)
+# n8n HTTP Batch Dispatcher & Workflow Utility
 
-Repositório dedicado ao estudo técnico de integração de APIs, inspeção de tráfego HTTP e automação de fluxos utilitários utilizando a plataforma **n8n**. Este projeto foi desenvolvido estritamente para fins acadêmicos, de testes de estresse de rotas e validação de resiliência de endpoints REST.
-
----
-
-## ⚠️ Aviso Legal e Recomendação de Uso
-
-**ESTE SOFTWARE É FORNECIDO "COMO ESTÁ", APENAS PARA FINS EDUCACIONAIS E DE PESQUISA.**
-
-* **Não utilize este workflow em ambientes de produção**, plataformas oficiais de ensino ou sistemas educacionais reais. O uso de scripts automatizados para interagir com plataformas de terceiros sem autorização prévia viola os Termos de Serviço (ToS) das respectivas instituições e pode resultar em sanções disciplinares, suspensão ou bloqueio definitivo de contas.
-* O autor deste repositório **não se responsabiliza** pelo uso indevido, má conduta acadêmica ou quaisquer danos causados pela aplicação prática deste código fora de um ambiente controlado e isolado de testes.
+Este repositório armazena um modelo de fluxo de trabalho automatizado construído no **n8n** para fins de estudo de manipulação de requisições HTTP, paginação de dados e processamento em lote (*batch processing*).
 
 ---
 
-## 🏗️ Arquitetura do Fluxo
+## ⚠️ Isenção de Responsabilidade e Termos de Uso
 
-O workflow implementa uma esteira de processamento sequencial e paralela dividida nas seguintes etapas lógicas:
+**ESTE SOFTWARE É DISTRIBUÍDO EXCLUSIVAMENTE PARA FINS DE ESTUDO PESSOAL E PESQUISA TÉCNICA.**
 
-1. **Extração de Parâmetros Globais**: Coleta de metadados da sessão, chaves de autenticação e identificadores de instâncias de atividades.
-2. **Tratamento e Mapeamento de Payload**: Conversão e normalização de estruturas de dados para envio via requisições HTTP assíncronas.
-3. **Dispatch de Respostas**: Iteração em lote (*batch processing*) simulando o envio de respostas para endpoints de validação.
-4. **Finalização de Sessão**: Execução da rota de encerramento de caderno (`/finish`) com tratamento de códigos de resposta padrão (`204 No Content`).
+* **Uso exclusivo por conta e risco:** Este código foi desenvolvido como um estudo de caso voltado para interação com APIs de plataformas de terceiros. Vale ressaltar que a análise dos Termos de Uso (ToS) da plataforma de destino não aponta restrições explícitas contra automações ou requisições via API. Ainda assim, o autor não presta suporte, não incentiva o uso indevido e **não assume qualquer responsabilidade** pela aplicação prática deste material por terceiros.
+* **Autonomia e consequências:** Qualquer consequência, advertência ou penalidade decorrente da utilização deste script em ambientes externos é de inteira e exclusiva responsabilidade do usuário final. O autor exime-se de qualquer obrigação de assistência, suporte ou intervenção em caso de eventuais sanções ou bloqueios decorrentes da execução do código.
 
 ---
 
-## 🚀 Como Executar Localmente (Testes)
+## 📋 Sobre o Projeto
 
-Para testar este fluxo em uma instância local de laboratório do n8n:
+Este repositório documenta uma arquitetura de integração e automação desenvolvida no **n8n**, projetada para demonstrar conceitos avançados de comunicação assíncrona, manipulação de payloads e engenharia de tráfego web. 
 
-1. Suba uma instância isolada do n8n (recomenda-se o uso via Docker).
-2. Importe o arquivo JSON contido neste repositório (`workflow.json`).
-3. Certifique-se de substituir todas as credenciais reais, tokens de acesso (`Bearer`) e identificadores fixos por variáveis de ambiente ou dados fictícios de testes (`mock`).
+A esteira modular foi estruturada para operar em ciclos sequenciais e paralelos, contemplando os seguintes componentes técnicos:
+
+* **Mapeamento Dinâmico de Variáveis:** Utilização de blocos de execução em JavaScript (`Code Nodes`) para isolar, extrair e normalizar propriedades de dados em tempo de execução, garantindo a interoperabilidade entre os nós da esteira.
+* **Processamento de Requisições em Lote (*Batch Dispatch*):** Orquestração de disparos sequenciais para o envio automatizado de pacotes de dados via protocolo HTTP.
+* **Tratamento de Respostas e Códigos de Status:** Gerenciamento de códigos de retorno de servidores REST, com validação de respostas padrão de sucesso — como o status HTTP `204 No Content` para confirmação de encerramento de instâncias.
+
+## ⚙️ Como Utilizar em Laboratório
+
+1. Importe o arquivo `SAS_educacao_otimizacao_n8n.json` em sua instância local do n8n.
+2. Certifique-se de configurar adequadamente os parâmetros de autenticação e os identificadores de sessão necessários para que o payload simule corretamente as requisições de teste (utilizando credenciais válidas adaptadas ao seu ambiente de homologação).
